@@ -42,16 +42,18 @@ nav a:hover { color:#2563eb; }
   height:90vh;
   display:flex; flex-direction:column; justify-content:center; align-items:center;
   text-align:center; color:white; padding:20px;
+  transition: background 1s ease-in-out;
+  position:relative;
 }
 .hero h2 { font-size:40px; margin-bottom:20px; text-shadow:0 2px 6px rgba(0,0,0,0.5); }
 .hero p { font-size:18px; margin-bottom:30px; }
 .btn-primary { background:#2563eb; color:white; padding:12px 24px; border-radius:8px; text-decoration:none; font-weight:600; cursor:pointer; border:none; }
 .btn-primary:hover { background:#1d4ed8; }
 
+/* Tours Grid */
 section { padding:80px 20px; max-width:1100px; margin:auto; }
 h2.section-title { font-size:28px; text-align:center; margin-bottom:40px; }
 
-/* Tours Grid */
 .tours { display:grid; grid-template-columns:repeat(auto-fit, minmax(260px,1fr)); gap:20px; }
 .card {
   background:white; border-radius:10px; overflow:hidden;
@@ -73,25 +75,11 @@ h2.section-title { font-size:28px; text-align:center; margin-bottom:40px; }
 .admin-panel button:hover { background:#1d4ed8; }
 
 /* Tombol Login Admin Tersembunyi */
-.hidden-button {
-  background:#f9fafb;
-  color:#f9fafb;
-  border:none;
-  cursor:pointer;
-  margin-bottom:20px;
-}
+.hidden-button { background:#f9fafb; color:#f9fafb; border:none; cursor:pointer; margin-bottom:20px; }
 
 /* Modal */
-.modal {
-  display:none;
-  position:fixed; z-index:2000;
-  left:0; top:0; width:100%; height:100%;
-  overflow:auto; background: rgba(0,0,0,0.5);
-}
-.modal-content {
-  background:#fff; margin:15% auto; padding:20px; border-radius:8px; width:90%; max-width:400px;
-  box-shadow:0 4px 10px rgba(0,0,0,0.3); position:relative;
-}
+.modal { display:none; position:fixed; z-index:2000; left:0; top:0; width:100%; height:100%; overflow:auto; background: rgba(0,0,0,0.5); }
+.modal-content { background:#fff; margin:15% auto; padding:20px; border-radius:8px; width:90%; max-width:400px; box-shadow:0 4px 10px rgba(0,0,0,0.3); position:relative; }
 .modal-content h3 { margin-bottom:15px; }
 .modal-content input { width:100%; padding:8px; margin:8px 0; border-radius:4px; border:1px solid #ccc; }
 .modal-content button { margin-top:10px; width:100%; }
@@ -117,15 +105,16 @@ footer a { color:#60a5fa; text-decoration:none; }
   </div>
 </header>
 
-<section class="hero">
+<section class="hero" id="hero">
   <h2>Liburan Mudah & Terjangkau</h2>
   <p>Temukan pengalaman tak terlupakan bersama Sarayaadventure</p>
   <a href="#tours" class="btn-primary">Lihat Paket Tour</a>
+  <input type="file" id="hero-img-upload" accept="image/*" style="display:none; margin-top:10px;">
+  <div id="hero-admin-panel" class="admin-panel" style="display:none;"></div>
 </section>
 
 <section id="tours">
   <h2 class="section-title">Paket Tour Populer</h2>
-  <!-- Tombol login admin tersembunyi tapi bisa diklik -->
   <button id="login-admin" class="hidden-button">Login Admin</button>
   <button id="add-tour" class="btn-primary" style="margin-bottom:20px; display:none;">Tambah Paket Tour</button>
   <div class="tours" id="tour-list"></div>
@@ -156,12 +145,27 @@ footer a { color:#60a5fa; text-decoration:none; }
 
 <script>
 document.addEventListener("DOMContentLoaded", function(){
+  // ===== Hero Slideshow =====
+  const heroSection = document.getElementById("hero");
+  let heroImages = [
+    'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1400&q=80',
+    'https://images.unsplash.com/photo-1519821172141-b0fbb83cc5a5?auto=format&fit=crop&w=1400&q=80',
+    'https://images.unsplash.com/photo-1526779259212-7e7c64a5de6a?auto=format&fit=crop&w=1400&q=80'
+  ];
+  let heroIndex = 0;
+
+  function updateHeroBackground(){
+    heroSection.style.background = `url('${heroImages[heroIndex]}') center/cover no-repeat`;
+  }
+  updateHeroBackground();
+  setInterval(()=>{ heroIndex = (heroIndex+1) % heroImages.length; updateHeroBackground(); }, 5000);
+
+  // ===== Tours =====
   const defaultTours = [
     { nama:"Bali Getaway", harga:2500000, img:"https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=800&q=80", desc:"Nikmati indahnya Bali 3 hari 2 malam." },
     { nama:"Yogyakarta Culture", harga:1500000, img:"https://images.unsplash.com/photo-1528909514045-2fa4ac7a08ba?auto=format&fit=crop&w=800&q=80", desc:"Jelajahi candi & budaya Jawa selama 2 hari." },
     { nama:"Labuan Bajo Adventure", harga:5000000, img:"https://images.unsplash.com/photo-1617196039897-805d6e7ca3a2?auto=format&fit=crop&w=800&q=80", desc:"Sailing Komodo dan keindahan Labuan Bajo 4 hari." }
   ];
-
   let tours = JSON.parse(localStorage.getItem("tours")) || defaultTours;
   let isAdmin = false;
 
@@ -188,25 +192,80 @@ document.addEventListener("DOMContentLoaded", function(){
   }
   renderTours();
 
-  // Modal
+  // ===== Modal Login =====
   const modal = document.getElementById("loginModal");
   document.getElementById("login-admin").addEventListener("click", ()=>{ modal.style.display="block"; });
   document.getElementById("btn-close").addEventListener("click", ()=>{ modal.style.display="none"; });
   window.addEventListener("click", (e)=>{ if(e.target==modal) modal.style.display="none"; });
 
-  // Login
+  // ===== Login Admin =====
   document.getElementById("btn-login").addEventListener("click", function(){
     const pwd = document.getElementById("adminPassword").value;
     if(pwd === "admin123"){
       isAdmin = true;
       modal.style.display = "none";
       document.getElementById("add-tour").style.display = "inline-block";
+      document.getElementById("hero-img-upload").style.display = "block";
       renderTours();
       alert("Login admin berhasil!");
+
+      // ===== Upload Hero =====
+      const heroUpload = document.getElementById("hero-img-upload");
+      heroUpload.addEventListener("change", function(event){
+        const file = event.target.files[0];
+        if(file){
+          const reader = new FileReader();
+          reader.onload = function(e){
+            heroImages.push(e.target.result);
+            heroIndex = heroImages.length-1;
+            updateHeroBackground();
+            showHeroAdminPanel();
+            alert("Gambar hero berhasil ditambahkan!");
+          }
+          reader.readAsDataURL(file);
+        }
+      });
+
+      // ===== Tampilkan panel admin hero =====
+      showHeroAdminPanel();
+
     } else { alert("Password salah!"); }
   });
 
-  // Tambah paket dengan upload gambar
+  // ===== Admin Panel Hero =====
+  function showHeroAdminPanel(){
+    const panel = document.getElementById("hero-admin-panel");
+    panel.style.display = "block";
+    panel.innerHTML = `<h3>Kelola Slideshow Hero</h3><div id="hero-thumbnails" style="display:flex; gap:10px; flex-wrap:wrap;"></div>`;
+    const thumbsContainer = document.getElementById("hero-thumbnails");
+    thumbsContainer.innerHTML = "";
+    heroImages.forEach((img,index)=>{
+      const thumbDiv = document.createElement("div");
+      thumbDiv.style.position="relative"; thumbDiv.style.width="100px"; thumbDiv.style.height="60px";
+
+      const imageEl = document.createElement("img");
+      imageEl.src = img; imageEl.style.width="100%"; imageEl.style.height="100%"; imageEl.style.objectFit="cover"; imageEl.style.border="1px solid #ccc"; imageEl.style.borderRadius="4px";
+
+      const delBtn = document.createElement("button");
+      delBtn.innerText="X"; delBtn.style.position="absolute"; delBtn.style.top="2px"; delBtn.style.right="2px";
+      delBtn.style.background="red"; delBtn.style.color="white"; delBtn.style.border="none";
+      delBtn.style.borderRadius="50%"; delBtn.style.width="20px"; delBtn.style.height="20px"; delBtn.style.cursor="pointer";
+      delBtn.addEventListener("click", ()=>{
+        if(confirm("Hapus gambar ini dari slideshow?")){
+          heroImages.splice(index,1);
+          if(heroIndex>=heroImages.length) heroIndex=0;
+          updateHeroBackground();
+          showHeroAdminPanel();
+        }
+      });
+
+      thumbDiv.appendChild(imageEl);
+      thumbDiv.appendChild(delBtn);
+      thumbsContainer.appendChild(thumbDiv);
+    });
+  }
+
+  // ===== Tambah Paket =====
   document.getElementById("add-tour").addEventListener("click", function(){
     const formHtml = `
       <div class="admin-panel">
@@ -217,89 +276,74 @@ document.addEventListener("DOMContentLoaded", function(){
         <textarea id="new-desc" placeholder="Deskripsi"></textarea>
         <button id="btn-add-tour">Tambah</button>
         <button onclick="cancelEdit()">Batal</button>
-      </div>
-    `;
-    document.getElementById("tour-list").innerHTML = formHtml;
+      </div>`;
+    document.getElementById("tour-list").innerHTML=formHtml;
 
-    const fileInput = document.getElementById("new-img");
-    const preview = document.getElementById("preview-img");
+    const fileInput=document.getElementById("new-img");
+    const preview=document.getElementById("preview-img");
     fileInput.addEventListener("change", function(event){
-      const file = event.target.files[0];
+      const file=event.target.files[0];
       if(file){
-        const reader = new FileReader();
-        reader.onload = function(e){
-          preview.src = e.target.result;
-          preview.style.display = "block";
-        }
+        const reader=new FileReader();
+        reader.onload=function(e){ preview.src=e.target.result; preview.style.display="block"; }
         reader.readAsDataURL(file);
       }
     });
 
     document.getElementById("btn-add-tour").addEventListener("click", function(){
-      const newTour = {
-        nama: document.getElementById("new-nama").value,
-        harga: Number(document.getElementById("new-harga").value),
-        img: preview.src,
-        desc: document.getElementById("new-desc").value
+      const newTour={ 
+        nama:document.getElementById("new-nama").value, 
+        harga:Number(document.getElementById("new-harga").value), 
+        img:preview.src, 
+        desc:document.getElementById("new-desc").value 
       };
       if(newTour.nama && newTour.harga && newTour.img && newTour.desc){
         tours.push(newTour);
         saveTours();
         renderTours();
-      } else {
-        alert("Isi semua data paket!");
-      }
+      } else { alert("Isi semua data paket!"); }
     });
   });
 
-  // Edit & delete
-  window.editTour = function(i){
-    const t = tours[i];
-    const formHtml = `
-      <div class="admin-panel">
-        <input type="text" id="e-nama" value="${t.nama}" placeholder="Nama Paket">
-        <input type="number" id="e-harga" value="${t.harga}" placeholder="Harga">
-        <input type="file" id="e-img" accept="image/*">
-        <img id="e-preview-img" src="${t.img}" style="width:100%; max-height:180px; object-fit:cover; margin-top:10px;">
-        <textarea id="e-desc" placeholder="Deskripsi">${t.desc}</textarea>
-        <button id="btn-update-tour">Update</button>
-        <button onclick="cancelEdit()">Batal</button>
-      </div>
-    `;
-    document.getElementById("tour-list").innerHTML = formHtml;
+  // ===== Edit & Delete =====
+  window.editTour=function(i){
+    const t=tours[i];
+    const formHtml=`<div class="admin-panel">
+      <input type="text" id="e-nama" value="${t.nama}" placeholder="Nama Paket">
+      <input type="number" id="e-harga" value="${t.harga}" placeholder="Harga">
+      <input type="file" id="e-img" accept="image/*">
+      <img id="e-preview-img" src="${t.img}" style="width:100%; max-height:180px; object-fit:cover; margin-top:10px;">
+      <textarea id="e-desc" placeholder="Deskripsi">${t.desc}</textarea>
+      <button id="btn-update-tour">Update</button>
+      <button onclick="cancelEdit()">Batal</button>
+    </div>`;
+    document.getElementById("tour-list").innerHTML=formHtml;
 
-    const fileInput = document.getElementById("e-img");
-    const preview = document.getElementById("e-preview-img");
+    const fileInput=document.getElementById("e-img");
+    const preview=document.getElementById("e-preview-img");
     fileInput.addEventListener("change", function(event){
-      const file = event.target.files[0];
+      const file=event.target.files[0];
       if(file){
-        const reader = new FileReader();
-        reader.onload = function(e){ preview.src = e.target.result; }
+        const reader=new FileReader();
+        reader.onload=function(e){ preview.src=e.target.result; }
         reader.readAsDataURL(file);
       }
     });
 
     document.getElementById("btn-update-tour").addEventListener("click", function(){
-      tours[i] = {
-        nama: document.getElementById("e-nama").value,
-        harga: Number(document.getElementById("e-harga").value),
-        img: preview.src,
-        desc: document.getElementById("e-desc").value
+      tours[i]={ 
+        nama:document.getElementById("e-nama").value, 
+        harga:Number(document.getElementById("e-harga").value), 
+        img:preview.src, 
+        desc:document.getElementById("e-desc").value 
       };
       saveTours();
       renderTours();
     });
   }
 
-  window.deleteTour = function(i){
-    if(confirm("Hapus paket ini?")){
-      tours.splice(i,1);
-      saveTours();
-      renderTours();
-    } 
-  }
-
-  window.cancelEdit = function(){ renderTours(); }
+  window.deleteTour=function(i){ if(confirm("Hapus paket ini?")){ tours.splice(i,1); saveTours(); renderTours(); } }
+  window.cancelEdit=function(){ renderTours(); }
 
 });
 </script>
